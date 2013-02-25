@@ -23,7 +23,6 @@ and listening for position data on aprs-is
 import couchdbkit
 import copy
 import logging
-import statsd
 import time
 import base64
 import datetime
@@ -31,10 +30,11 @@ import hashlib
 
 from . import aprs
 
-logger = logging.getLogger("habitat.aprs_daemon")
-statsd.init_statsd({'STATSD_BUCKET_PREFIX': 'habitat'})
+
+logger = logging.getLogger("habitat_aprs.daemon")
 
 __all__ = ['APRSDaemon']
+
 
 class APRSDaemon(object):
     """
@@ -68,7 +68,6 @@ class APRSDaemon(object):
 
 
     def run(self):
-
         self.fetch_active_flights()
         self.aprs.connect(blocking=True) # keeps trying to connect until success
 
@@ -202,5 +201,3 @@ class APRSDaemon(object):
         doc.update({'_id': hashlib.sha256(doc['data']['_raw']).hexdigest()})
 
         return self.db.save_doc(doc)
-
-

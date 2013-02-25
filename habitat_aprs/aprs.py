@@ -22,14 +22,14 @@ import re
 import math
 import copy
 import logging
-import statsd
 
-logger = logging.getLogger("habitat.aprs")
-statsd.init_statsd({'STATSD_BUCKET_PREFIX': 'habitat'})
 
-__all__ = ['APRS', 'APRSModule']
+logger = logging.getLogger("habitat_aprs.aprs")
 
-class aprs:
+__all__ = ['APRS', 'GenericError', 'ParseError',
+           'LoginError', 'ConnectionError', 'ConnectionDrop']
+
+class APRS(object):
     def __init__(self, host, port, callsign, passwd):
         """
         APRS module that listens and parses sentences passed by aprs.net servers
@@ -41,12 +41,12 @@ class aprs:
         self.sock = None
         self.filter = "b/" # empty bud filter
 
-        self._connected = False;
-        self.buf =''
+        self._connected = False
+        self.buf = ''
 
     def callsign_filter(self, callsigns):
         """
-        Sets a filter for the specified callsigns. Only those will be send to us by the server
+        Sets a filter for the specified callsigns. Only those will be sent to us by the server
         """
 
         if type(callsigns) is not list or len(callsigns) == 0:
@@ -74,15 +74,10 @@ class aprs:
         """
         self.server = (host, port)
 
-    def connect(self, **kwargs):
+    def connect(self, blocking=False):
         """
         Initiate connection to APRS server and attempt to login
         """
-
-        blocking = False  # when true, func wont return until connection is established
-
-        if 'blocking' in kwargs:
-            blocking = kwargs['blocking']
 
         if not self._connected:
             while True:
@@ -113,22 +108,15 @@ class aprs:
         if self.sock is not None:
             self.sock.close()
 
-
-    def consumer(self, callback, **kwargs):
+    def consumer(self, callback, blocking=True, immortal=False, raw=False):
         """
         When a position sentence is recieved, it will be passed to the callback function
-        """
-        blocking = True    # customer runs forever, when false, the cunsumer will return to resume program flow
-        immortal = False   # when true, consumer will try to reconnect and stop propagation of Exceptions
-        raw = False        # when true, pass raw aprs sentence to callback, otherwise pass parsed data as dict
 
-        for key, value in kwargs.iteritems():
-            if key == 'blocking':
-                blocking = value
-            elif key == 'immortal':
-                immortal = value
-            elif key == 'raw':
-                raw = value
+        blocking: if true, runs forever, otherwise will return after one
+                  sentence
+        immortal: when true, consumer will try to reconnect and stop propagation of Exceptions
+        raw: when true, pass raw aprs sentence to callback, otherwise pass parsed data as dict
+        """
 
         if not self._connected:
             raise ConnectionError("not connected to a server")
@@ -163,10 +151,9 @@ class aprs:
             if not blocking:
                 break
 
-
     def _connect(self):
         """
-        Attemps to open a connection to the server, retrys if it fails
+        Attemps to open a connection to the server, retries if it fails
         """
 
         try:
@@ -185,7 +172,6 @@ class aprs:
             else:
                 raise ConnectionError(e)
 
-
         self._connected = True
 
     def _send_login(self):
@@ -193,7 +179,6 @@ class aprs:
         Sends login string to server
         """
         login_str = "user {0} pass {1} vers habitat-daemon 0.1 filter {2}\r\n".format(self.callsign, self.passwd, self.filter)
-
 
         try:
             self.sock.sendall(login_str)
@@ -474,6 +459,7 @@ class aprs:
 
         logger.info("Parsed ok.")
         return parsed
+
 
 # Exceptions
 class GenericError(Exception):
