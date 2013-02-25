@@ -1,32 +1,24 @@
 #!/usr/bin/env python
-# Copyright 2011 (C) Daniel Richman
-#
-# This file is part of habitat.
-#
-# habitat is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# habitat is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with habitat.  If not, see <http://www.gnu.org/licenses/>.
+
 import sys
-sys.path.insert(0, '/home/rgp/dev/habitat')
+import os.path
+
+root = os.path.realpath(os.path.join(__file__, "../../"))
 
 try:
     import habitat
 except ImportError:
-    # Find habitat, assuming we're in the habitat git repo.
-    import sys
-    from os.path import abspath, split, join
-    sys.path.append(join(split(abspath(__file__))[0], '..'))
+    # Assumes habitat and habitat-aprs have been cloned in the same parent
+    # directory
+
+    sys.path.append(os.path.join(os.path.dirname(root), "habitat"))
     import habitat
 
-from habitat.aprs_daemon import APRSDaemon
+try:
+    import habitat_aprs
+except ImportError:
+    sys.path.append(root)
+
 from habitat.utils.startup import main
+from habitat_aprs.daemon import APRSDaemon
 main(APRSDaemon)
